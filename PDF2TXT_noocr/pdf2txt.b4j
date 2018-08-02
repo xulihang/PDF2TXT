@@ -1,0 +1,171 @@
+﻿AppType=JavaFX
+Build1=Default,b4j.example
+File1=main.bjl
+FileGroup1=Default Group
+Group=Default Group
+Library1=jcore
+Library2=jfx
+Library3=javaobject
+Library4=jshell
+Library5=apachestringutilsb4j
+NumberOfFiles=1
+NumberOfLibraries=5
+NumberOfModules=0
+Version=6.01
+@EndOfDesignText@
+#Region Project Attributes 
+	#MainFormWidth: 600
+	#MainFormHeight: 600 
+#End Region
+
+Sub Process_Globals
+	Private fx As JFX
+	Private MainForm As Form
+
+	Private Button1 As Button
+	Private Button2 As Button
+	Private Button3 As Button
+	Private Label2 As Label
+	Private ListView1 As ListView
+
+
+	Private TextArea1 As TextArea
+	Private TextField1 As TextField
+	Private TextField2 As TextField
+End Sub
+
+Sub AppStart (Form1 As Form, Args() As String)
+	MainForm = Form1
+	MainForm.RootPane.LoadLayout("main") 'Load the layout file.
+	MainForm.Show
+	Dim sh As Shell
+	sh.Initialize("sh","tesseract",Null)
+	sh.run(10000)
+
+
+	TextArea1.Text=""
+End Sub
+
+'Return true to allow the default exceptions handler to handle the uncaught exception.
+Sub Application_Error (Error As Exception, StackTrace As String) As Boolean
+	Return True
+End Sub
+
+Sub ListView1_MouseClicked (EventData As MouseEvent)
+	
+End Sub
+
+Sub Button3_MouseClicked (EventData As MouseEvent)
+	Dim j As Int
+	j=0
+	For Each line As String In ListView1.Items
+		j=j+1
+		Dim list1 As List
+		list1.Initialize
+		list1.AddAll(Regex.Split("	",line))
+		Dim chaptername As String
+		Dim startnum,endnum As Int
+		chaptername=list1.Get(0)
+		startnum=list1.Get(1)
+		endnum=list1.Get(2)
+		Dim content As String
+		For i=startnum To endnum
+			'scan("file-"&i&".jpg",i)
+			TextArea1.Text=TextArea1.Text&i&CRLF
+			content=content&"Page "&i&CRLF&CRLF&removeLines(File.ReadString(File.Combine(File.DirApp,"temp"),(i+TextField2.Text)&".txt"))
+		Next
+		content=content.Replace("“",Chr(34))
+		content=content.Replace("”",Chr(34))
+		content=content.Replace("‘","'")
+		content=content.Replace("’","'")
+		content=content.Replace("—","-")
+		File.WriteString(File.DirApp,j&"-"&chaptername&".txt",content)
+	Next
+End Sub
+
+Sub Button2_MouseClicked (EventData As MouseEvent)
+	fx.Msgbox(MainForm,"导入的文件需要以TAB分割章节名、起始页码和终止页码"&CRLF&"可以用excel制作表格，然后导出TAB分割的文本文件。","")
+	Dim path As String
+	Dim fc As FileChooser
+	fc.Initialize
+	fc.SetExtensionFilter("Tab分割文本",Array As String("*.txt"))
+	path=fc.ShowOpen(MainForm)
+	If path="" Then
+		Return
+	End If
+	Dim contents As String
+	contents=File.ReadString(path,"")
+	ListView1.Items.AddAll(Regex.Split(CRLF,contents))
+End Sub
+
+Sub Button1_MouseClicked (EventData As MouseEvent)
+	If TextField1.Text="" Then
+		fx.Msgbox(MainForm,"请先填写PDF文件页数","")
+		Return
+	End If
+	Dim path As String
+	Dim fc As FileChooser
+	fc.Initialize
+	fc.SetExtensionFilter("pdf",Array As String("*.pdf"))
+	path=fc.ShowOpen(MainForm)
+	If path="" Then
+		Return
+	End If
+	Label2.Text=path
+	File.Copy(path,"",File.Combine(File.DirApp,"temp"),"file.pdf")
+	TextArea1.Text="导出PDF为文字到临时文件夹中。。。"
+	For i=1 To TextField1.Text
+		Log(i)
+		Dim sh As Shell
+		sh.Initialize("sh3","java",Array As String("-jar","pdfbox-app.jar","ExtractText", "-startPage",i,"-endPage",i,File.Combine(File.Combine(File.DirApp,"temp"),"file.pdf"),"temp/"&i&".txt"))
+		sh.WorkingDirectory = File.DirApp
+		sh.run(-1)
+		wait for sh3_ProcessCompleted (Success As Boolean, ExitCode As Int, StdOut As String, StdErr As String)
+		TextArea1.Text=TextArea1.Text&StdOut
+		If Success And ExitCode = 0 Then
+			Log("Success")
+			Log(StdOut)
+			TextArea1.Text="第"&i&"页导出完成，还剩"&(TextField1.Text-i)&"页"
+		Else
+			Log("Error: " & StdErr)
+			TextArea1.Text="导出失败"
+		End If
+	Next
+End Sub
+
+Sub removeLines(input As String) As String
+	Dim result As String
+	Dim list1 As List
+	list1.Initialize
+	list1.AddAll(Regex.Split(CRLF,input))
+	Log(list1)
+	For Each line As String In list1
+		line=line.Trim
+		Log(line)
+		If line="" Or line=" " Then
+			Continue
+		End If
+		If isSentenceEnd(line)=False Then
+			result=result&" "&line
+		Else
+			result=result&" "&line&CRLF
+		End If
+	Next
+
+	Dim list2 As List
+	list2.Initialize
+	list2.AddAll(Regex.Split(CRLF,result))
+	result=""
+	For Each line As String In list2
+		result=result&line.Trim&CRLF&CRLF
+	Next
+    Return result
+End Sub
+
+Sub isSentenceEnd(line As String) As Boolean
+	If line.EndsWith(".") Or line.EndsWith("!") Or line.EndsWith("?") Or line.EndsWith(";") Or line.EndsWith(Chr(34)) Then
+		Return True
+	Else
+		Return False
+	End If
+End Sub
