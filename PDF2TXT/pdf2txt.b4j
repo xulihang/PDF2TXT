@@ -64,8 +64,17 @@ Sub ListView1_MouseClicked (EventData As MouseEvent)
 End Sub
 
 Sub Button3_MouseClicked (EventData As MouseEvent)
-	
+	If TextField1.Text="" Then
+		fx.Msgbox(MainForm,"请填写PDF页数和正文页数之差","")
+		Return
+	End If
+	If ListView1.Items.Size=0 Then
+		fx.Msgbox(MainForm,"请先添加目录信息","")
+		Return
+	End If
+	Dim j=0 As Int
 	For Each line As String In ListView1.Items
+		j=j+1
 		Dim list1 As List
 		list1.Initialize
 		list1.AddAll(Regex.Split("	",line))
@@ -79,7 +88,7 @@ Sub Button3_MouseClicked (EventData As MouseEvent)
 			Dim pdfnum As Int
 			pdfnum=i+TextField1.Text
 			'scan("file-"&i&".jpg",i)
-			TextArea1.Text=TextArea1.Text&i&CRLF
+			TextArea1.Text="第"&i&"页处理中。。。"
 			Dim args As List
 			args.Initialize
 			args.AddAll(Array As String("file-"&pdfnum&".jpg",pdfnum,"-l",langmap.Get(ComboBox1.Value)))
@@ -96,15 +105,18 @@ Sub Button3_MouseClicked (EventData As MouseEvent)
 			wait for sh1_ProcessCompleted (Success As Boolean, ExitCode As Int, StdOut As String, StdErr As String)
 			
 			If Success And ExitCode = 0 Then
+				TextArea1.Text="第"&i&"页已导出"&CRLF&StdOut
 				Log("Success")
 				Log(StdOut)
+				
 			Else
 				Log("Error: " & StdErr)
 			End If
 			content=content&"Page "&i&CRLF&CRLF&removeLines(File.ReadString(File.Combine(File.DirApp,"temp"),pdfnum&".txt"))
 		Next
-		File.WriteString(File.DirApp,chaptername&".txt",content)
+		File.WriteString(File.DirApp,j&"-"&chaptername&".txt",content)
 	Next
+	TextArea1.Text="导出成功！文件生成在程序目录下"
 End Sub
 
 Sub Button2_MouseClicked (EventData As MouseEvent)
