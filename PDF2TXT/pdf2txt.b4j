@@ -64,17 +64,8 @@ Sub ListView1_MouseClicked (EventData As MouseEvent)
 End Sub
 
 Sub Button3_MouseClicked (EventData As MouseEvent)
-	If TextField1.Text="" Then
-		fx.Msgbox(MainForm,"请填写PDF页数和正文页数之差","")
-		Return
-	End If
-	If ListView1.Items.Size=0 Then
-		fx.Msgbox(MainForm,"请先添加目录信息","")
-		Return
-	End If
-	Dim j=0 As Int
+	
 	For Each line As String In ListView1.Items
-		j=j+1
 		Dim list1 As List
 		list1.Initialize
 		list1.AddAll(Regex.Split("	",line))
@@ -88,10 +79,10 @@ Sub Button3_MouseClicked (EventData As MouseEvent)
 			Dim pdfnum As Int
 			pdfnum=i+TextField1.Text
 			'scan("file-"&i&".jpg",i)
-			TextArea1.Text="第"&i&"页处理中。。。"
+			TextArea1.Text=TextArea1.Text&i&CRLF
 			Dim args As List
 			args.Initialize
-			args.AddAll(Array As String("file-"&pdfnum&".jpg",pdfnum,"-l",langmap.Get(ComboBox1.Value)))
+			args.AddAll(Array As String("file"&pdfnum&".jpg",pdfnum,"-l",langmap.Get(ComboBox1.Value)))
 			Dim sh1 As Shell
 			Log(File.Exists(File.Combine(File.DirApp,"tesseract-ocr"),"tesseract.exe"))
 			If tesseractInstalled Then
@@ -105,18 +96,15 @@ Sub Button3_MouseClicked (EventData As MouseEvent)
 			wait for sh1_ProcessCompleted (Success As Boolean, ExitCode As Int, StdOut As String, StdErr As String)
 			
 			If Success And ExitCode = 0 Then
-				TextArea1.Text="第"&i&"页已导出"&CRLF&StdOut
 				Log("Success")
 				Log(StdOut)
-				
 			Else
 				Log("Error: " & StdErr)
 			End If
 			content=content&"Page "&i&CRLF&CRLF&removeLines(File.ReadString(File.Combine(File.DirApp,"temp"),pdfnum&".txt"))
 		Next
-		File.WriteString(File.DirApp,j&"-"&chaptername&".txt",content)
+		File.WriteString(File.DirApp,chaptername&".txt",content)
 	Next
-	TextArea1.Text="导出成功！文件生成在程序目录下"
 End Sub
 
 Sub Button2_MouseClicked (EventData As MouseEvent)
@@ -146,7 +134,7 @@ Sub Button1_MouseClicked (EventData As MouseEvent)
 	File.Copy(path,"",File.Combine(File.DirApp,"temp"),"file.pdf")
 	TextArea1.Text="导出PDF为图片到临时文件夹中。。。"
 	Dim sh As Shell
-	sh.Initialize("sh3","java",Array As String("-Xmx1024m","-jar","pdfbox-app.jar","ExtractImages", File.Combine(File.Combine(File.DirApp,"temp"),"file.pdf")))
+	sh.Initialize("sh3",File.Combine(File.Combine(File.DirApp,"jre1.8.0_181\bin"),"java"),Array As String("-Xmx1024m","-jar","pdfbox-app.jar","PDFToImage", File.Combine(File.Combine(File.DirApp,"temp"),"file.pdf")))
 	sh.WorkingDirectory = File.Combine(File.DirApp,"tesseract-ocr")
 	sh.run(-1)
 	wait for sh3_ProcessCompleted (Success As Boolean, ExitCode As Int, StdOut As String, StdErr As String)
@@ -227,7 +215,7 @@ Sub removeLines(input As String) As String
 End Sub
 
 Sub isSentenceEnd(line As String) As Boolean
-	If line.EndsWith(".") Or line.EndsWith("!") Or line.EndsWith("?") Or line.EndsWith(";") Or line.EndsWith(Chr(34)) Then
+	If line.EndsWith("。") Or line.EndsWith("！") Or line.EndsWith("？") Or line.EndsWith("”") Or line.EndsWith(".") Or line.EndsWith("!") Or line.EndsWith("?") Or line.EndsWith(";") Or line.EndsWith(Chr(34)) Then
 		Return True
 	Else
 		Return False

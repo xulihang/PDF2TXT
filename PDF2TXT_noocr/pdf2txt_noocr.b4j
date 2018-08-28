@@ -38,6 +38,11 @@ Sub AppStart (Form1 As Form, Args() As String)
 	MainForm = Form1
 	MainForm.RootPane.LoadLayout("main") 'Load the layout file.
 	MainForm.Show
+	Dim sh As Shell
+	sh.Initialize("sh","tesseract",Null)
+	sh.run(10000)
+
+
 	TextArea1.Text=""
 End Sub
 
@@ -90,8 +95,6 @@ Sub Button2_MouseClicked (EventData As MouseEvent)
 	End If
 	Dim contents As String
 	contents=File.ReadString(path,"")
-	contents=contents.Replace(":","-") '替换非法文件名
-	contents=contents.Replace(Chr(34),"")
 	ListView1.Items.AddAll(Regex.Split(CRLF,contents))
 End Sub
 
@@ -114,7 +117,7 @@ Sub Button1_MouseClicked (EventData As MouseEvent)
 	For i=1 To TextField1.Text
 		Log(i)
 		Dim sh As Shell
-		sh.Initialize("sh3","java",Array As String("-jar","pdfbox-app.jar","ExtractText", "-startPage",i,"-endPage",i,File.Combine(File.Combine(File.DirApp,"temp"),"file.pdf"),"temp/"&i&".txt"))
+		sh.Initialize("sh3","java",Array As String("-jar","-Xmx1024m","pdfbox-app.jar","ExtractText", "-startPage",i,"-endPage",i,File.Combine(File.Combine(File.DirApp,"temp"),"file.pdf"),"temp/"&i&".txt"))
 		sh.WorkingDirectory = File.DirApp
 		sh.run(-1)
 		wait for sh3_ProcessCompleted (Success As Boolean, ExitCode As Int, StdOut As String, StdErr As String)
